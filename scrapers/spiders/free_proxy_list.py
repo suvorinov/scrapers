@@ -1,54 +1,32 @@
 # -*- coding: utf-8 -*-
 # @Author: suvorinov
 # @Date:   2023-12-21 09:30:05
-# @Last Modified by:   suvorinov
-# @Last Modified time: 2024-01-05 20:21:48
+# @Last Modified by:   Suvorinov Oleg
+# @Last Modified time: 2024-01-10 12:12:51
 
 import pathlib
+from multiprocessing.dummy import Pool
 
 from scrapy.spiders import Spider
 from scrapy.http import Request
 
-from py_random_useragent import UserAgent
 from scrapers.settings import FREE_PROXY_DATA_PATH
 from scrapers.models.proxy import Proxy
 
+from py_random_useragent import UserAgent
 
-DATA_PATH = pathlib.Path.home() / 'free_proxy'
+
+USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
 
 
 class FreeProxyListSpider(Spider):
     name = "free_proxy_list"
 
     allowed_domains = ["free-proxy-list.net"]
-    start_urls = ["https://free-proxy-list.net/"]
+    # start_urls = ["https://free-proxy-list.net/"]
+    "https://scrape-it.cloud/free-proxy-list"
 
     file_json = FREE_PROXY_DATA_PATH / f"{name}.json"
-    file_csv = FREE_PROXY_DATA_PATH / f"{name}.csv"
-
-    """
-    'ftp://suvorinov:669498surik@dev.dev/%(name_ru)s/%(country)s/%(city)s.json': {
-        'format': 'json',
-        'encoding': 'utf8',
-        'store_empty': False,
-        'indent': 4,
-        'overwrite': True
-    },
-    'ftp://suvorinov:669498surik@dev.dev/%(name_ru)s/%(country)s/%(city)s.json': { # noqa
-        'format': 'json',
-        'encoding': 'utf8',
-        'store_empty': False,
-        'indent': 4,
-        'overwrite': True
-    },
-    'ftp://suvorinov:669498surik@dev.dev/%(name)s/%(city)s.csv': {
-        'format': 'json',
-        'encoding': 'utf8',
-        'store_empty': False,
-        'indent': 4,
-        'overwrite': True
-    },
-    """
 
     custom_settings = {
         'FEEDS': {
@@ -59,38 +37,40 @@ class FreeProxyListSpider(Spider):
                 'indent': 4,
                 'overwrite': True
             },
-            pathlib.Path(file_csv): {
-                'format': 'csv',
-                'encoding': 'utf8',
-                'overwrite': True
-            },
         }}
 
-    def __init__(self, *args, **kwargs):
-        super(FreeProxyListSpider, self).__init__(*args, **kwargs)
-
     def start_requests(self):
-        for i, url in enumerate(self.start_urls):
-            headers = {
-                'User-Agent': UserAgent().get_ua()
+        headers = {
+            'User-Agent': USER_AGENT  # UserAgent().get_ua()
+        }
+        yield Request(
+            url="https://free-proxy-list.net/",
+            callback=self.parse,
+            headers=headers,
+            meta={
+                "to_from": "https://free-proxy-list.net/"
             }
-            yield Request(
-                url=url,
-                headers=headers
-            )
+        )
+
+        yield Request(
+            url="https://scrape-it.cloud/free-proxy-list",
+            callback=self.parse,
+            headers=headers,
+            meta={
+                "to_from": "https://scrape-it.cloud"
+            }
+        )
 
     def parse(self, response):
 
         try:
             for tr in response.xpath('//tbody/tr'):
                 tds = tr.xpath('.//td')
-                # print(tds)
                 if tds:
                     item = Proxy()
                     item.host = tds[0].xpath('text()').get(None)
                     item.port = tds[1].xpath('text()').get(None)
-                    item.to_from = self.start_urls[0]
-                # item['desc'] = tds[1].xpath('text()').getall()[1:]
+                    item.to_from = response.meta['to_from']
                     yield item
         except Exception:
-            self.logger.error('Exception during success_parse', exc_info=True)
+            self.logger.error('Exception during parse proxy list', exc_info=True) # noqa
