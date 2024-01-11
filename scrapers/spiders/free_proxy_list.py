@@ -2,18 +2,15 @@
 # @Author: suvorinov
 # @Date:   2023-12-21 09:30:05
 # @Last Modified by:   Suvorinov Oleg
-# @Last Modified time: 2024-01-10 12:12:51
+# @Last Modified time: 2024-01-10 21:13:04
 
 import pathlib
-from multiprocessing.dummy import Pool
 
 from scrapy.spiders import Spider
 from scrapy.http import Request
 
 from scrapers.settings import FREE_PROXY_DATA_PATH
-from scrapers.models.proxy import Proxy
-
-from py_random_useragent import UserAgent
+from scrapers.items import Proxy
 
 
 USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
